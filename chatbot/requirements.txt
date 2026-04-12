@@ -1,0 +1,41 @@
+# ── Web scraping ───────────────────────────────────────────────────────────────
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=5.1.0
+
+# ── Embeddings ─────────────────────────────────────────────────────────────────
+sentence-transformers>=3.0.0
+
+# ── Vector databases ───────────────────────────────────────────────────────────
+chromadb>=0.5.0
+# Use faiss-gpu instead of faiss-cpu for GPU-accelerated similarity search.
+# If faiss-gpu is unavailable for your CUDA version, faiss-cpu still works fine
+# (retrieval is already fast at <0.5 s — the GPU gain here is during ingestion).
+faiss-cpu>=1.8.0
+
+# ── Sparse retrieval ───────────────────────────────────────────────────────────
+rank-bm25>=0.2.2
+
+# ── PyTorch — install the CUDA build BEFORE everything else ────────────────────
+# Run this first (pick your CUDA version, e.g. cu121 for CUDA 12.1):
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+# The line below is kept as a fallback; it installs the CPU build from PyPI.
+torch>=2.2.0
+transformers>=4.46.3
+accelerate>=1.2.1
+tokenizers>=0.19.0
+hf_xet
+
+# ── 4-bit quantisation — REQUIRED for fast GPU generation ─────────────────────
+# This is the single most impactful change: reduces generation from ~70 s → ~3-5 s.
+bitsandbytes>=0.45.0
+
+# ── Optional: Flash Attention 2 (further ~20-30 % speedup on Ampere+ GPUs) ─────
+# Requires a C++ compiler and takes a few minutes to build.
+# Install separately after the main requirements:
+#   pip install flash-attn --no-build-isolation
+# flash-attn>=2.5.0
+
+# ── Utilities ──────────────────────────────────────────────────────────────────
+numpy>=1.26.0
+tqdm>=4.66.0
