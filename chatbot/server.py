@@ -124,7 +124,7 @@ def chat_stream():
 # ── Entry point ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    port = int(os.getenv("CHATBOT_PORT", 5100))
+    port = int(os.getenv("CHATBOT_PORT", 3001))
     log.info("Starting chatbot server on http://127.0.0.1:%d", port)
     # use_reloader=False keeps the model loaded in one process
     app.run(host="127.0.0.1", port=port, debug=False, use_reloader=False)

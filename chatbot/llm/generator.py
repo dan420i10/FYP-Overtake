@@ -49,13 +49,9 @@ class F1Generator:
     @staticmethod
     def _build_context(docs: list[RankedResult]) -> str:
         parts = []
-        for i, doc in enumerate(docs, 1):
-            src   = doc.metadata.get("source", "unknown")
-            title = doc.metadata.get("title",  "unknown")
-            parts.append(
-                f"[Document {i}] (Source: {title} — {src})\n{doc.text}"
-            )
-        return "\n\n---\n\n".join(parts)
+        for doc in docs:
+            parts.append(doc.text)
+        return "\n\n".join(parts)
 
     def _build_messages(self, question: str, docs: list[RankedResult]) -> list[dict]:
         context = self._build_context(docs)

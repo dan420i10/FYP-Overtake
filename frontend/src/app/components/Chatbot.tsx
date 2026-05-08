@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { MessageCircle, X, Send, Sparkles } from "lucide-react";
+import { MessageCircle, X, Send, Sparkles, Loader } from "lucide-react";
 
 interface Message {
   id: string;
@@ -17,12 +17,15 @@ const initialMessages: Message[] = [
   },
 ];
 
+const BACKEND_URL = "http://127.0.0.1:3001";
+
 export default function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
@@ -34,42 +37,41 @@ export default function Chatbot() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setIsLoading(true);
 
-    setTimeout(() => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ question: input }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: getBotResponse(input),
+        text: data.answer || "Sorry, I couldn't generate a response.",
         sender: "bot",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, botResponse]);
-    }, 1000);
-  };
-
-  const getBotResponse = (userInput: string): string => {
-    const lowerInput = userInput.toLowerCase();
-
-    if (lowerInput.includes("predict") || lowerInput.includes("prediction")) {
-      return "Our AI prediction model analyzes multiple factors including driver skill, team performance, track history, weather conditions, and recent form to generate accurate race predictions. You can adjust factor weights on the Predictions page to see how different configurations affect the model's predictions!";
+    } catch (error) {
+      console.error("Error calling chatbot API:", error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: `Sorry, I couldn't connect to the chatbot service. Make sure the backend is running on port 3001. Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        sender: "bot",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
-
-    if (lowerInput.includes("factor") || lowerInput.includes("weight")) {
-      return "Factor weights determine how much influence each element has on the AI model's prediction. For example, increasing the 'Recent Form' weight will make the model prioritize drivers who performed well in recent races. Try experimenting with different combinations to see how the predictions change!";
-    }
-
-    if (lowerInput.includes("max") || lowerInput.includes("verstappen")) {
-      return "Max Verstappen is currently leading the championship with exceptional consistency. His performance at Red Bull Racing has been dominant, especially on high-speed circuits. He's a strong pick for most predictions!";
-    }
-
-    if (lowerInput.includes("miami") || lowerInput.includes("next race")) {
-      return "The Miami Grand Prix is coming up on May 5, 2026. It's a street circuit known for tight corners and limited overtaking opportunities. Qualifying position will be crucial here. Track temperature can also play a significant role in tire strategy.";
-    }
-
-    if (lowerInput.includes("help") || lowerInput.includes("how")) {
-      return "I can help you with:\n• Understanding how the AI prediction model works\n• Explaining prediction factors and weights\n• Providing driver and team stats\n• Answering F1 rules and regulations\n• Suggesting factor adjustments to improve model accuracy\n\nJust ask me anything about F1!";
-    }
-
-    return "That's an interesting question! I'm here to help with the AI prediction model, race analysis, and general F1 knowledge. Feel free to ask about specific drivers, teams, circuits, or how the prediction model works!";
   };
 
   return (
@@ -145,14 +147,15 @@ export default function Chatbot() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Ask about F1 or predictions..."
-                className="flex-1 rounded-lg border border-border bg-secondary/30 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-[#e10600] focus:outline-none focus:ring-2 focus:ring-[#e10600]/20"
+                disabled={isLoading}
+                className="flex-1 rounded-lg border border-border bg-secondary/30 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-[#e10600] focus:outline-none focus:ring-2 focus:ring-[#e10600]/20 disabled:opacity-50"
               />
               <button
                 onClick={handleSend}
-                disabled={!input.trim()}
+                disabled={!input.trim() || isLoading}
                 className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-r from-[#e10600] to-[#c00500] text-white transition-all hover:shadow-lg hover:shadow-[#e10600]/30 disabled:opacity-50"
               >
-                <Send className="h-5 w-5" />
+                {isLoading ? <Loader className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               </button>
             </div>
           </div>
