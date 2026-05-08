@@ -1,11 +1,4 @@
 """
-main.py — F1 RAG System CLI
-
-Modes:
-  interactive  : REPL loop, ask questions one by one (default)
-  single       : answer one question passed via --query
-  eval         : run a batch of test questions from --eval-file
-
 Usage
 -----
 python main.py                                     # interactive mode
@@ -97,7 +90,7 @@ def ask(
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(
-        description="F1 RAG — Hybrid BM25 + Semantic search with Qwen2.5",
+        description="F1 RAG — Hybrid BM25 + Semantic search with Groq API",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     p.add_argument(
@@ -185,7 +178,7 @@ def batch_eval(
 def main() -> None:
     args = parse_args()
 
-    print("Initialising F1 RAG pipeline …")
+    print("Initialising IBA RAG pipeline …")
     ranker, generator = build_pipeline(backend=args.backend)
     print("Ready ✓\n")
 
