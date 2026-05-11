@@ -1,5 +1,6 @@
 botvenv
 chatbot-venv/
+backend-venv/
 __pycache__
 *.pyc
 *.pyo
@@ -44,3 +45,5 @@ yarn-debug.log*
 
 # Misc
 .cache/
+overtake-main.tex
+SETUP.md

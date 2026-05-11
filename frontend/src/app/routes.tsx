@@ -7,6 +7,7 @@ import Profile from "./components/Profile";
 import Statistics from "./components/Statistics";
 import Settings from "./components/Settings";
 import Notifications from "./components/Notifications";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 export const router = createBrowserRouter([
   {
@@ -14,12 +15,54 @@ export const router = createBrowserRouter([
     Component: Root,
     children: [
       { index: true, Component: Login },
-      { path: "dashboard", Component: Dashboard },
-      { path: "predictions", Component: Predictions },
-      { path: "profile", Component: Profile },
-      { path: "statistics", Component: Statistics },
-      { path: "settings", Component: Settings },
-      { path: "notifications", Component: Notifications },
+      {
+        path: "dashboard",
+        element: (
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "predictions",
+        element: (
+          <ProtectedRoute>
+            <Predictions />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "profile",
+        element: (
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "statistics",
+        element: (
+          <ProtectedRoute>
+            <Statistics />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "settings",
+        element: (
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: "notifications",
+        element: (
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        ),
+      },
     ],
   },
 ]);

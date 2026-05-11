@@ -1,8 +1,18 @@
 import { useNavigate } from "react-router";
 import { Trophy, TrendingUp, Globe, Users } from "lucide-react";
+import { useEffect, useState } from "react";
+import { authService } from "../../services/authService";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [userName, setUserName] = useState<string>("User");
+
+  useEffect(() => {
+    const userData = authService.getUserData();
+    if (userData) {
+      setUserName(userData.name);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -20,9 +30,12 @@ export default function Dashboard() {
             alt="F1 Logo"
             className="mb-8 h-20 w-auto opacity-90"
           />
-          <h1 className="mb-4 text-6xl font-bold tracking-tight text-white md:text-7xl lg:text-8xl">
-            FORMULA 1
+          <h1 className="mb-2 text-4xl font-bold tracking-tight text-white md:text-5xl">
+            Welcome, {userName}! 🏎️
           </h1>
+          <h2 className="mb-4 text-6xl font-bold tracking-tight text-white md:text-7xl lg:text-8xl">
+            FORMULA 1
+          </h2>
           <p className="max-w-3xl text-lg text-gray-200 md:text-xl">
             The pinnacle of motorsport. Experience the thrill, understand the sport,
             <br />

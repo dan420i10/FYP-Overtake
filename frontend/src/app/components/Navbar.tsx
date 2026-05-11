@@ -1,6 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router";
 import { Bell, User, Flag, Sun, Moon, Settings, LogOut, Trophy, BarChart3, Clock } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+import { authService } from "../../services/authService";
 import * as Popover from "@radix-ui/react-popover";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 
@@ -35,10 +37,21 @@ export default function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+  const [userName, setUserName] = useState<string>("User");
+  const [userEmail, setUserEmail] = useState<string>("user@example.com");
+
+  useEffect(() => {
+    const userData = authService.getUserData();
+    if (userData) {
+      setUserName(userData.name);
+      setUserEmail(userData.email);
+    }
+  }, []);
 
   const isActive = (path: string) => location.pathname === path;
 
   const handleLogout = () => {
+    authService.logout();
     navigate("/");
   };
 
@@ -175,8 +188,8 @@ export default function Navbar() {
                   align="end"
                 >
                   <div className="border-b border-border px-3 py-3">
-                    <p className="font-semibold text-foreground">John Racer</p>
-                    <p className="text-sm text-muted-foreground">john@f1predictor.com</p>
+                    <p className="font-semibold text-foreground">{userName}</p>
+                    <p className="text-sm text-muted-foreground">{userEmail}</p>
                   </div>
 
                   <DropdownMenu.Item

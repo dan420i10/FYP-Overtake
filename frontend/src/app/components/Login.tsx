@@ -1,14 +1,142 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
-import { Mail, Lock, Chrome } from "lucide-react";
+import { Mail, Lock, AlertCircle, CheckCircle } from "lucide-react";
+import { authService } from "../../services/authService";
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [emailExists, setEmailExists] = useState<boolean | null>(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Form states
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    age: "",
+  });
+
+  // Check if email is already registered during signup
+  useEffect(() => {
+    if (!isLogin && formData.email) {
+      const timer = setTimeout(async () => {
+        try {
+          setCheckingEmail(true);
+          const result = await authService.verifyEmail(formData.email);
+          setEmailExists(result.exists);
+        } catch (err) {
+          console.error("Error checking email:", err);
+        } finally {
+          setCheckingEmail(false);
+        }
+      }, 500);
+
+      return () => clearTimeout(timer);
+    }
+  }, [formData.email, isLogin]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setError(null);
+    setSuccess(null);
+  };
+
+  const validateForm = (): boolean => {
+    if (isLogin) {
+      if (!formData.email || !formData.password) {
+        setError("Email and password are required");
+        return false;
+      }
+    } else {
+      if (!formData.name || !formData.email || !formData.password || !formData.confirmPassword) {
+        setError("All fields are required");
+        return false;
+      }
+      if (formData.name.length < 2) {
+        setError("Name must be at least 2 characters");
+        return false;
+      }
+      if (formData.password.length < 6) {
+        setError("Password must be at least 6 characters");
+        return false;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        setError("Passwords do not match");
+        return false;
+      }
+      if (emailExists) {
+        setError("Email is already registered");
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/dashboard");
+    
+    if (!validateForm()) return;
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      if (isLogin) {
+        const response = await authService.login({
+          email: formData.email,
+          password: formData.password,
+        });
+        
+        // Save token and user data
+        authService.setToken(response.token);
+        authService.setUserData(response.user);
+        
+        setSuccess("Login successful! Redirecting...");
+        setTimeout(() => navigate("/dashboard"), 1000);
+      } else {
+        const response = await authService.signup({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          age: formData.age ? parseInt(formData.age) : undefined,
+        });
+        
+        // Save token and user data
+        authService.setToken(response.token);
+        authService.setUserData(response.user);
+        
+        setSuccess("Account created successfully! Redirecting...");
+        setTimeout(() => navigate("/dashboard"), 1000);
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTabChange = (tab: boolean) => {
+    setIsLogin(tab);
+    setError(null);
+    setSuccess(null);
+    setFormData({
+      name: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      age: "",
+    });
+    setEmailExists(null);
   };
 
   return (
@@ -53,7 +181,7 @@ export default function Login() {
 
           <div className="flex gap-2 rounded-xl bg-secondary/50 p-1">
             <button
-              onClick={() => setIsLogin(true)}
+              onClick={() => handleTabChange(true)}
               className={`flex-1 rounded-lg py-2 transition-all ${
                 isLogin
                   ? "bg-[#e10600] text-white shadow-lg shadow-[#e10600]/20"
@@ -63,7 +191,7 @@ export default function Login() {
               Login
             </button>
             <button
-              onClick={() => setIsLogin(false)}
+              onClick={() => handleTabChange(false)}
               className={`flex-1 rounded-lg py-2 transition-all ${
                 !isLogin
                   ? "bg-[#e10600] text-white shadow-lg shadow-[#e10600]/20"
@@ -74,33 +202,83 @@ export default function Login() {
             </button>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="flex gap-3 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-sm text-red-400">
+              <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div className="flex gap-3 rounded-lg bg-green-500/10 border border-green-500/20 p-3 text-sm text-green-400">
+              <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <span>{success}</span>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Name Field (Sign Up Only) */}
+            {!isLogin && (
+              <div className="space-y-2">
+                <label className="text-sm text-foreground">Full Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  placeholder="John Doe"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="w-full rounded-lg border border-border bg-secondary/30 py-3 px-4 text-foreground placeholder:text-muted-foreground focus:border-[#e10600] focus:outline-none focus:ring-2 focus:ring-[#e10600]/20"
+                  required={!isLogin}
+                />
+              </div>
+            )}
+
+            {/* Email Field */}
             <div className="space-y-2">
-              <label className="text-sm text-foreground">Email</label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-foreground">Email</label>
+                {!isLogin && checkingEmail && <span className="text-xs text-muted-foreground">Checking...</span>}
+                {!isLogin && emailExists === false && (
+                  <span className="text-xs text-green-400">Email available</span>
+                )}
+                {!isLogin && emailExists === true && (
+                  <span className="text-xs text-red-400">Email already registered</span>
+                )}
+              </div>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="email"
+                  name="email"
                   placeholder="you@example.com"
+                  value={formData.email}
+                  onChange={handleInputChange}
                   className="w-full rounded-lg border border-border bg-secondary/30 py-3 pl-11 pr-4 text-foreground placeholder:text-muted-foreground focus:border-[#e10600] focus:outline-none focus:ring-2 focus:ring-[#e10600]/20"
                   required
                 />
               </div>
             </div>
 
+            {/* Password Field */}
             <div className="space-y-2">
               <label className="text-sm text-foreground">Password</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                 <input
                   type="password"
+                  name="password"
                   placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleInputChange}
                   className="w-full rounded-lg border border-border bg-secondary/30 py-3 pl-11 pr-4 text-foreground placeholder:text-muted-foreground focus:border-[#e10600] focus:outline-none focus:ring-2 focus:ring-[#e10600]/20"
                   required
                 />
               </div>
             </div>
 
+            {/* Confirm Password Field (Sign Up Only) */}
             {!isLogin && (
               <div className="space-y-2">
                 <label className="text-sm text-foreground">Confirm Password</label>
@@ -108,44 +286,52 @@ export default function Login() {
                   <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <input
                     type="password"
+                    name="confirmPassword"
                     placeholder="••••••••"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
                     className="w-full rounded-lg border border-border bg-secondary/30 py-3 pl-11 pr-4 text-foreground placeholder:text-muted-foreground focus:border-[#e10600] focus:outline-none focus:ring-2 focus:ring-[#e10600]/20"
-                    required
+                    required={!isLogin}
                   />
                 </div>
               </div>
             )}
 
-            {isLogin && (
-              <div className="text-right">
-                <button type="button" className="text-sm text-[#e10600] hover:underline">
-                  Forgot password?
-                </button>
+            {/* Age Field (Sign Up Only) */}
+            {!isLogin && (
+              <div className="space-y-2">
+                <label className="text-sm text-foreground">Age (Optional)</label>
+                <input
+                  type="number"
+                  name="age"
+                  placeholder="Enter your age"
+                  value={formData.age}
+                  onChange={handleInputChange}
+                  min="0"
+                  max="150"
+                  className="w-full rounded-lg border border-border bg-secondary/30 py-3 px-4 text-foreground placeholder:text-muted-foreground focus:border-[#e10600] focus:outline-none focus:ring-2 focus:ring-[#e10600]/20"
+                />
               </div>
             )}
 
+            {/* Submit Button */}
             <button
               type="submit"
-              className="w-full rounded-lg bg-gradient-to-r from-[#e10600] to-[#c00500] py-3 font-semibold text-white shadow-xl shadow-[#e10600]/30 transition-all hover:shadow-2xl hover:shadow-[#e10600]/40"
+              disabled={loading || (!isLogin && emailExists === true)}
+              className={`w-full rounded-lg bg-gradient-to-r from-[#e10600] to-[#c00500] py-3 font-semibold text-white shadow-xl shadow-[#e10600]/30 transition-all ${
+                loading || (!isLogin && emailExists === true)
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:shadow-2xl hover:shadow-[#e10600]/40"
+              }`}
             >
-              {isLogin ? "Login" : "Create Account"}
-            </button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-3 rounded-lg border border-border bg-secondary/30 py-3 text-foreground transition-all hover:bg-secondary/50"
-            >
-              <Chrome className="h-5 w-5" />
-              <span>Continue with Google</span>
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  {isLogin ? "Logging in..." : "Creating account..."}
+                </span>
+              ) : (
+                isLogin ? "Login" : "Create Account"
+              )}
             </button>
           </form>
         </div>

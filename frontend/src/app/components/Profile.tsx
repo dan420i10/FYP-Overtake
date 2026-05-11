@@ -1,10 +1,37 @@
 import { User, Mail, Calendar, Trophy, TrendingUp, Target } from "lucide-react";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import { authService } from "../../services/authService";
+
+interface UserData {
+  id: number;
+  name: string;
+  email: string;
+  age?: number;
+}
 
 export default function Profile() {
+  const [userData, setUserData] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    const data = authService.getUserData();
+    if (data) {
+      setUserData(data);
+    }
+  }, []);
+
   const handleEditProfile = () => {
     toast.success("Edit profile feature coming soon!");
   };
+
+  if (!userData) {
+    return (
+      <div className="min-h-screen bg-background py-8 flex items-center justify-center">
+        <div className="text-foreground">Loading profile...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container mx-auto px-6">
@@ -24,8 +51,8 @@ export default function Profile() {
                 <div className="mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#e10600] to-[#a00500]">
                   <User className="h-12 w-12 text-white" />
                 </div>
-                <h2 className="text-2xl font-bold text-foreground">John Racer</h2>
-                <p className="text-sm text-muted-foreground">@johnracer</p>
+                <h2 className="text-2xl font-bold text-foreground">{userData.name}</h2>
+                <p className="text-sm text-muted-foreground">@{userData.email.split("@")[0]}</p>
               </div>
 
               <div className="space-y-3">
@@ -33,14 +60,23 @@ export default function Profile() {
                   <Mail className="h-5 w-5 text-[#e10600]" />
                   <div>
                     <div className="text-xs text-muted-foreground">Email</div>
-                    <div className="text-sm text-foreground">john@f1predictor.com</div>
+                    <div className="text-sm text-foreground break-all">{userData.email}</div>
                   </div>
                 </div>
+                {userData.age && (
+                  <div className="flex items-center gap-3 rounded-lg bg-secondary/30 p-3">
+                    <Calendar className="h-5 w-5 text-[#00d4ff]" />
+                    <div>
+                      <div className="text-xs text-muted-foreground">Age</div>
+                      <div className="text-sm text-foreground">{userData.age} years</div>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 rounded-lg bg-secondary/30 p-3">
-                  <Calendar className="h-5 w-5 text-[#00d4ff]" />
+                  <div className="h-5 w-5 text-[#ffd700] flex items-center justify-center">🆔</div>
                   <div>
-                    <div className="text-xs text-muted-foreground">Joined</div>
-                    <div className="text-sm text-foreground">January 2026</div>
+                    <div className="text-xs text-muted-foreground">User ID</div>
+                    <div className="text-sm text-foreground">#{userData.id}</div>
                   </div>
                 </div>
               </div>
