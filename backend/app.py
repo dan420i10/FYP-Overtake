@@ -15,7 +15,9 @@ def create_app():
     
     # Register blueprints
     from routes import auth_bp
+    from prediction_routes import predict_bp
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(predict_bp, url_prefix='/api')
     
     # Create database tables
     with app.app_context():

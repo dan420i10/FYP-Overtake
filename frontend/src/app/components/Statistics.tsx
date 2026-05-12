@@ -1,5 +1,13 @@
 import { CheckCircle, XCircle, AlertCircle, Calendar, Trophy, Target, Users, Award } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  constructorAccentColor,
+  fetchConstructorStandings,
+  fetchDriverStandings,
+  type ConstructorStandingRow,
+  type DriverStandingRow,
+  type StandingsMeta,
+} from "../../services/standingsService";
 
 const previousPredictions = [
   {
@@ -70,47 +78,66 @@ const previousPredictions = [
   },
 ];
 
-const driverStandings = [
-  { pos: 1, driver: "Max Verstappen", team: "Red Bull Racing", points: 186, color: "#1e3a8a" },
-  { pos: 2, driver: "Charles Leclerc", team: "Ferrari", points: 154, color: "#dc2626" },
-  { pos: 3, driver: "Lando Norris", team: "McLaren", points: 142, color: "#f97316" },
-  { pos: 4, driver: "Carlos Sainz", team: "Ferrari", points: 128, color: "#dc2626" },
-  { pos: 5, driver: "Lewis Hamilton", team: "Mercedes", points: 118, color: "#00d4cc" },
-  { pos: 6, driver: "George Russell", team: "Mercedes", points: 106, color: "#00d4cc" },
-  { pos: 7, driver: "Sergio Perez", team: "Red Bull Racing", points: 98, color: "#1e3a8a" },
-  { pos: 8, driver: "Fernando Alonso", team: "Aston Martin", points: 82, color: "#15803d" },
-  { pos: 9, driver: "Oscar Piastri", team: "McLaren", points: 74, color: "#f97316" },
-  { pos: 10, driver: "Lance Stroll", team: "Aston Martin", points: 56, color: "#15803d" },
-  { pos: 11, driver: "Pierre Gasly", team: "Alpine", points: 48, color: "#3b82f6" },
-  { pos: 12, driver: "Esteban Ocon", team: "Alpine", points: 42, color: "#3b82f6" },
-  { pos: 13, driver: "Alex Albon", team: "Williams", points: 38, color: "#1e40af" },
-  { pos: 14, driver: "Yuki Tsunoda", team: "RB", points: 32, color: "#4338ca" },
-  { pos: 15, driver: "Daniel Ricciardo", team: "RB", points: 28, color: "#4338ca" },
-  { pos: 16, driver: "Nico Hulkenberg", team: "Haas", points: 24, color: "#6b7280" },
-  { pos: 17, driver: "Kevin Magnussen", team: "Haas", points: 18, color: "#6b7280" },
-  { pos: 18, driver: "Valtteri Bottas", team: "Sauber", points: 14, color: "#22c55e" },
-  { pos: 19, driver: "Zhou Guanyu", team: "Sauber", points: 10, color: "#22c55e" },
-  { pos: 20, driver: "Logan Sargeant", team: "Williams", points: 8, color: "#1e40af" },
-  { pos: 21, driver: "Liam Lawson", team: "Cadillac", points: 6, color: "#a855f7" },
-  { pos: 22, driver: "Oliver Bearman", team: "Cadillac", points: 4, color: "#a855f7" },
-];
-
-const constructorStandings = [
-  { pos: 1, team: "Red Bull Racing", points: 284, color: "#1e3a8a" },
-  { pos: 2, team: "Ferrari", points: 282, color: "#dc2626" },
-  { pos: 3, team: "Mercedes", points: 224, color: "#00d4cc" },
-  { pos: 4, team: "McLaren", points: 216, color: "#f97316" },
-  { pos: 5, team: "Aston Martin", points: 138, color: "#15803d" },
-  { pos: 6, team: "Alpine", points: 90, color: "#3b82f6" },
-  { pos: 7, team: "RB", points: 60, color: "#4338ca" },
-  { pos: 8, team: "Williams", points: 46, color: "#1e40af" },
-  { pos: 9, team: "Haas", points: 42, color: "#6b7280" },
-  { pos: 10, team: "Sauber", points: 24, color: "#22c55e" },
-  { pos: 11, team: "Cadillac", points: 10, color: "#a855f7" },
-];
+const emptyStandingsMeta: StandingsMeta = { season: "", round: "" };
 
 export default function Statistics() {
   const [activeTab, setActiveTab] = useState<"predictions" | "drivers" | "constructors">("predictions");
+  const [driverRows, setDriverRows] = useState<DriverStandingRow[]>([]);
+  const [constructorRows, setConstructorRows] = useState<ConstructorStandingRow[]>([]);
+  const [driverMeta, setDriverMeta] = useState<StandingsMeta>(emptyStandingsMeta);
+  const [constructorMeta, setConstructorMeta] = useState<StandingsMeta>(emptyStandingsMeta);
+  const [driversLoading, setDriversLoading] = useState(true);
+  const [constructorsLoading, setConstructorsLoading] = useState(true);
+  const [driversError, setDriversError] = useState<string | null>(null);
+  const [constructorsError, setConstructorsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const [dRes, cRes] = await Promise.allSettled([
+        fetchDriverStandings(),
+        fetchConstructorStandings(),
+      ]);
+
+      if (cancelled) return;
+
+      if (dRes.status === "fulfilled") {
+        setDriverRows(dRes.value.rows);
+        setDriverMeta(dRes.value.meta);
+        setDriversError(null);
+      } else {
+        setDriversError(dRes.reason instanceof Error ? dRes.reason.message : "Could not load driver standings");
+      }
+      setDriversLoading(false);
+
+      if (cRes.status === "fulfilled") {
+        setConstructorRows(cRes.value.rows);
+        setConstructorMeta(cRes.value.meta);
+        setConstructorsError(null);
+      } else {
+        setConstructorsError(
+          cRes.reason instanceof Error ? cRes.reason.message : "Could not load constructor standings"
+        );
+      }
+      setConstructorsLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const standingsSubtitle = (meta: StandingsMeta) => {
+    if (!meta.season && !meta.round) return "Live championship data (Jolpica / Ergast)";
+    const parts = [`Season ${meta.season}`];
+    if (meta.round) parts.push(`after round ${meta.round}`);
+    parts.push("Jolpica / Ergast");
+    return parts.join(" · ");
+  };
+
+  const leaderConstructorPoints =
+    constructorRows.length > 0 ? Math.max(constructorRows[0].points, 1) : 1;
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -353,42 +380,52 @@ export default function Statistics() {
               <div className="flex items-center gap-3">
                 <Trophy className="h-8 w-8 text-[#ffd700]" />
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">2026 Driver Standings</h2>
-                  <p className="text-sm text-muted-foreground">Current championship positions</p>
+                  <h2 className="text-2xl font-bold text-foreground">
+                    {driverMeta.season ? `${driverMeta.season} Driver Standings` : "Driver Standings"}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">{standingsSubtitle(driverMeta)}</p>
                 </div>
               </div>
             </div>
             <div className="p-6">
-              <div className="space-y-3">
-                {driverStandings.map((driver) => (
-                  <div
-                    key={driver.pos}
-                    className="flex items-center gap-4 rounded-lg border border-border bg-secondary/30 p-4 transition-all hover:bg-secondary/50"
-                  >
+              {driversLoading ? (
+                <div className="flex justify-center py-16 text-muted-foreground">Loading driver standings…</div>
+              ) : driversError ? (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+                  {driversError}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {driverRows.map((driver) => (
                     <div
-                      className={`flex h-12 w-12 items-center justify-center rounded-lg font-bold text-white ${
-                        driver.pos === 1
-                          ? "bg-gradient-to-br from-[#ffd700] to-[#ffed4e] text-black"
-                          : driver.pos === 2
-                          ? "bg-gradient-to-br from-[#c0c0c0] to-[#e8e8e8] text-black"
-                          : driver.pos === 3
-                          ? "bg-gradient-to-br from-[#cd7f32] to-[#e8a87c]"
-                          : "bg-gradient-to-br from-[#2a2a35] to-[#1f1f28]"
-                      }`}
+                      key={driver.driverId}
+                      className="flex items-center gap-4 rounded-lg border border-border bg-secondary/30 p-4 transition-all hover:bg-secondary/50"
                     >
-                      {driver.pos}
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-lg font-bold text-white ${
+                          driver.position === 1
+                            ? "bg-gradient-to-br from-[#ffd700] to-[#ffed4e] text-black"
+                            : driver.position === 2
+                              ? "bg-gradient-to-br from-[#c0c0c0] to-[#e8e8e8] text-black"
+                              : driver.position === 3
+                                ? "bg-gradient-to-br from-[#cd7f32] to-[#e8a87c]"
+                                : "bg-gradient-to-br from-[#2a2a35] to-[#1f1f28]"
+                        }`}
+                      >
+                        {driver.position}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-foreground">{driver.driver}</div>
+                        <div className="text-sm text-muted-foreground">{driver.team}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-foreground">{driver.points}</div>
+                        <div className="text-xs text-muted-foreground">points</div>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-foreground">{driver.driver}</div>
-                      <div className="text-sm text-muted-foreground">{driver.team}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-foreground">{driver.points}</div>
-                      <div className="text-xs text-muted-foreground">points</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -399,50 +436,64 @@ export default function Statistics() {
               <div className="flex items-center gap-3">
                 <Award className="h-8 w-8 text-[#00d4ff]" />
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">2026 Constructor Standings</h2>
-                  <p className="text-sm text-muted-foreground">Team championship positions</p>
+                  <h2 className="text-2xl font-bold text-foreground">
+                    {constructorMeta.season
+                      ? `${constructorMeta.season} Constructor Standings`
+                      : "Constructor Standings"}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">{standingsSubtitle(constructorMeta)}</p>
                 </div>
               </div>
             </div>
             <div className="p-6">
-              <div className="space-y-3">
-                {constructorStandings.map((team) => (
-                  <div
-                    key={team.pos}
-                    className="flex items-center gap-4 rounded-lg border border-border bg-secondary/30 p-4 transition-all hover:bg-secondary/50"
-                  >
+              {constructorsLoading ? (
+                <div className="flex justify-center py-16 text-muted-foreground">
+                  Loading constructor standings…
+                </div>
+              ) : constructorsError ? (
+                <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+                  {constructorsError}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {constructorRows.map((team) => (
                     <div
-                      className={`flex h-12 w-12 items-center justify-center rounded-lg font-bold text-white ${
-                        team.pos === 1
-                          ? "bg-gradient-to-br from-[#ffd700] to-[#ffed4e] text-black"
-                          : team.pos === 2
-                          ? "bg-gradient-to-br from-[#c0c0c0] to-[#e8e8e8] text-black"
-                          : team.pos === 3
-                          ? "bg-gradient-to-br from-[#cd7f32] to-[#e8a87c]"
-                          : "bg-gradient-to-br from-[#2a2a35] to-[#1f1f28]"
-                      }`}
+                      key={team.constructorId}
+                      className="flex items-center gap-4 rounded-lg border border-border bg-secondary/30 p-4 transition-all hover:bg-secondary/50"
                     >
-                      {team.pos}
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-foreground">{team.team}</div>
-                      <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-secondary/50">
-                        <div
-                          className="h-full rounded-full transition-all"
-                          style={{
-                            backgroundColor: team.color,
-                            width: `${(team.points / constructorStandings[0].points) * 100}%`,
-                          }}
-                        ></div>
+                      <div
+                        className={`flex h-12 w-12 items-center justify-center rounded-lg font-bold text-white ${
+                          team.position === 1
+                            ? "bg-gradient-to-br from-[#ffd700] to-[#ffed4e] text-black"
+                            : team.position === 2
+                              ? "bg-gradient-to-br from-[#c0c0c0] to-[#e8e8e8] text-black"
+                              : team.position === 3
+                                ? "bg-gradient-to-br from-[#cd7f32] to-[#e8a87c]"
+                                : "bg-gradient-to-br from-[#2a2a35] to-[#1f1f28]"
+                        }`}
+                      >
+                        {team.position}
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-foreground">{team.team}</div>
+                        <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-secondary/50">
+                          <div
+                            className="h-full rounded-full transition-all"
+                            style={{
+                              backgroundColor: constructorAccentColor(team.constructorId),
+                              width: `${(team.points / leaderConstructorPoints) * 100}%`,
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-foreground">{team.points}</div>
+                        <div className="text-xs text-muted-foreground">points</div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-foreground">{team.points}</div>
-                      <div className="text-xs text-muted-foreground">points</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

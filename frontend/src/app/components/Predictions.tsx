@@ -1,6 +1,12 @@
-import { useState } from "react";
-import { RotateCcw, Zap, TrendingUp, Cloud, Trophy, Target, Settings } from "lucide-react";
+import { useEffect, useState } from "react";
+import { RotateCcw, Zap, TrendingUp, Cloud, Trophy, Target, Settings, SlidersHorizontal } from "lucide-react";
 import * as Slider from "@radix-ui/react-slider";
+import { Switch } from "./ui/switch";
+import { Label } from "./ui/label";
+import {
+  predictionService,
+  type PredictionRow,
+} from "../../services/predictionService";
 
 interface Factor {
   id: string;
@@ -48,83 +54,47 @@ const initialFactors: Factor[] = [
   },
 ];
 
-const predictionResults = [
-  {
-    position: 1,
-    driver: "Max Verstappen",
-    team: "Red Bull Racing",
-    probability: 68,
-    confidence: 92,
-  },
-  {
-    position: 2,
-    driver: "Charles Leclerc",
-    team: "Ferrari",
-    probability: 52,
-    confidence: 85,
-  },
-  {
-    position: 3,
-    driver: "Lando Norris",
-    team: "McLaren",
-    probability: 45,
-    confidence: 78,
-  },
-  {
-    position: 4,
-    driver: "Lewis Hamilton",
-    team: "Mercedes",
-    probability: 38,
-    confidence: 74,
-  },
-  {
-    position: 5,
-    driver: "George Russell",
-    team: "Mercedes",
-    probability: 35,
-    confidence: 71,
-  },
-  {
-    position: 6,
-    driver: "Carlos Sainz",
-    team: "Ferrari",
-    probability: 32,
-    confidence: 68,
-  },
-  {
-    position: 7,
-    driver: "Sergio Perez",
-    team: "Red Bull Racing",
-    probability: 28,
-    confidence: 65,
-  },
-  {
-    position: 8,
-    driver: "Fernando Alonso",
-    team: "Aston Martin",
-    probability: 24,
-    confidence: 62,
-  },
-  {
-    position: 9,
-    driver: "Oscar Piastri",
-    team: "McLaren",
-    probability: 21,
-    confidence: 58,
-  },
-  {
-    position: 10,
-    driver: "Lance Stroll",
-    team: "Aston Martin",
-    probability: 18,
-    confidence: 55,
-  },
-];
+function buildUserWeights(factors: Factor[]): Record<string, number> {
+  const idToKey: Record<string, string> = {
+    "driver-skill": "driver_skill",
+    "team-performance": "team_performance",
+    "track-history": "track_history",
+    weather: "weather",
+    "recent-form": "recent_form",
+  };
+  const out: Record<string, number> = {};
+  for (const f of factors) {
+    const k = idToKey[f.id];
+    if (k) out[k] = f.weight;
+  }
+  return out;
+}
 
 export default function Predictions() {
   const [factors, setFactors] = useState<Factor[]>(initialFactors);
   const [isPredicting, setIsPredicting] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [customWeightsEnabled, setCustomWeightsEnabled] = useState(false);
+  const [eventLabel, setEventLabel] = useState("");
+  const [predictionRows, setPredictionRows] = useState<PredictionRow[]>([]);
+  const [analysisText, setAnalysisText] = useState("");
+  const [modelConfidence, setModelConfidence] = useState(0);
+  const [predictionError, setPredictionError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    predictionService
+      .getMeta()
+      .then((m) => {
+        if (!cancelled) setEventLabel(m.defaultEventName);
+      })
+      .catch(() => {
+        if (!cancelled) setEventLabel("");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleWeightChange = (id: string, value: number[]) => {
     setFactors((prev) =>
@@ -136,12 +106,28 @@ export default function Predictions() {
     setFactors(initialFactors);
   };
 
-  const runPrediction = () => {
+  const runPrediction = async () => {
+    setPredictionError(null);
     setIsPredicting(true);
-    setTimeout(() => {
-      setIsPredicting(false);
+    try {
+      const payload: {
+        user_weights?: Record<string, number>;
+      } = {};
+      if (customWeightsEnabled) {
+        payload.user_weights = buildUserWeights(factors);
+      }
+      const data = await predictionService.predict(payload);
+      setPredictionRows(data.top10);
+      setEventLabel(data.eventName);
+      setAnalysisText(data.analysis);
+      setModelConfidence(data.modelConfidence);
       setShowResults(true);
-    }, 2000);
+    } catch (e) {
+      setPredictionError(e instanceof Error ? e.message : "Prediction failed");
+      setShowResults(false);
+    } finally {
+      setIsPredicting(false);
+    }
   };
 
   return (
@@ -152,76 +138,125 @@ export default function Predictions() {
             AI Race Predictor
           </h1>
           <p className="text-muted-foreground">
-            Adjust the prediction factors below and let our AI model generate race outcome predictions for you
+            {customWeightsEnabled
+              ? "Tune factor weights below, then generate a prediction tailored to your preferences."
+              : "Run a quick prediction with the model’s default balanced weights, or turn on custom weights to fine-tune each factor."}
           </p>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-6">
             <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card/80 to-secondary/40 p-6 backdrop-blur-xl">
-              <div className="mb-6 flex items-center justify-between">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Settings className="h-6 w-6 text-[#e10600]" />
                   <h3 className="text-lg text-foreground">Prediction Factors</h3>
                 </div>
-                <button
-                  onClick={resetFactors}
-                  className="flex items-center gap-2 rounded-lg border border-border bg-secondary/30 px-4 py-2 text-sm text-foreground transition-all hover:bg-secondary/50"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Reset
-                </button>
+                {customWeightsEnabled && (
+                  <button
+                    type="button"
+                    onClick={resetFactors}
+                    className="flex items-center gap-2 rounded-lg border border-border bg-secondary/30 px-4 py-2 text-sm text-foreground transition-all hover:bg-secondary/50"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Reset
+                  </button>
+                )}
               </div>
 
-              <div className="space-y-4">
-                {factors.map((factor) => (
-                  <div
-                    key={factor.id}
-                    className="rounded-lg border border-border bg-secondary/30 p-4"
-                  >
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#e10600] to-[#a00500] text-white">
-                          {factor.icon}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-foreground">{factor.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {factor.description}
+              <div className="mb-6 flex flex-col gap-3 rounded-xl border border-border bg-secondary/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#e10600]/15 text-[#e10600]">
+                    <SlidersHorizontal className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 space-y-1">
+                    <Label htmlFor="custom-weights" className="text-sm font-semibold text-foreground">
+                      Custom factor weights
+                    </Label>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Off: default balanced weights — go straight to Predict. On: show sliders and tune each factor.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-3 self-end sm:self-center">
+                  <span className="text-xs font-medium text-muted-foreground sm:hidden">
+                    {customWeightsEnabled ? "On" : "Off"}
+                  </span>
+                  <Switch
+                    id="custom-weights"
+                    checked={customWeightsEnabled}
+                    onCheckedChange={setCustomWeightsEnabled}
+                    aria-label="Toggle custom factor weights"
+                  />
+                </div>
+              </div>
+
+              {customWeightsEnabled ? (
+                <div className="space-y-4">
+                  {factors.map((factor) => (
+                    <div
+                      key={factor.id}
+                      className="rounded-lg border border-border bg-secondary/30 p-4"
+                    >
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#e10600] to-[#a00500] text-white">
+                            {factor.icon}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-foreground">{factor.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {factor.description}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#e10600]/20 bg-[#e10600]/10">
+                          <span className="font-bold text-foreground">{factor.weight}</span>
+                        </div>
                       </div>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#e10600]/10 border border-[#e10600]/20">
-                        <span className="font-bold text-foreground">{factor.weight}</span>
+
+                      <div className="space-y-2">
+                        <Slider.Root
+                          className="relative flex h-5 w-full touch-none select-none items-center"
+                          value={[factor.weight]}
+                          onValueChange={(value) => handleWeightChange(factor.id, value)}
+                          max={10}
+                          step={1}
+                        >
+                          <Slider.Track className="relative h-2 grow rounded-full bg-secondary/50">
+                            <Slider.Range className="absolute h-full rounded-full bg-gradient-to-r from-[#e10600] to-[#c00500]" />
+                          </Slider.Track>
+                          <Slider.Thumb className="block h-5 w-5 rounded-full border-2 border-[#e10600] bg-white shadow-lg shadow-[#e10600]/30 transition-all hover:scale-110 focus:outline-none" />
+                        </Slider.Root>
+
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>0</span>
+                          <span>5</span>
+                          <span>10</span>
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border bg-secondary/10 px-4 py-10 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Default model weights are in use. Tap{" "}
+                    <span className="font-semibold text-foreground">Generate AI Prediction</span> when you are ready,
+                    or enable custom weights above to adjust factors first.
+                  </p>
+                </div>
+              )}
 
-                    <div className="space-y-2">
-                      <Slider.Root
-                        className="relative flex h-5 w-full touch-none select-none items-center"
-                        value={[factor.weight]}
-                        onValueChange={(value) => handleWeightChange(factor.id, value)}
-                        max={10}
-                        step={1}
-                      >
-                        <Slider.Track className="relative h-2 grow rounded-full bg-secondary/50">
-                          <Slider.Range className="absolute h-full rounded-full bg-gradient-to-r from-[#e10600] to-[#c00500]" />
-                        </Slider.Track>
-                        <Slider.Thumb className="block h-5 w-5 rounded-full border-2 border-[#e10600] bg-white shadow-lg shadow-[#e10600]/30 transition-all hover:scale-110 focus:outline-none" />
-                      </Slider.Root>
-
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>0</span>
-                        <span>5</span>
-                        <span>10</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {predictionError && (
+                <p className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-600 dark:text-red-400">
+                  {predictionError}
+                </p>
+              )}
 
               <button
-                onClick={runPrediction}
+                type="button"
+                onClick={() => void runPrediction()}
                 disabled={isPredicting}
                 className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#e10600] to-[#c00500] px-6 py-4 font-semibold text-white shadow-xl shadow-[#e10600]/30 transition-all hover:shadow-2xl hover:shadow-[#e10600]/40 disabled:opacity-50"
               >
@@ -247,7 +282,7 @@ export default function Predictions() {
                   <Trophy className="h-6 w-6 text-[#ffd700]" />
                   <h3 className="text-lg text-foreground">AI Predicted Top 10</h3>
                 </div>
-                <div className="text-sm text-muted-foreground">Miami GP</div>
+                <div className="text-sm text-muted-foreground">{eventLabel || "Race"}</div>
               </div>
 
               {!showResults ? (
@@ -257,15 +292,17 @@ export default function Predictions() {
                       <Zap className="h-10 w-10 text-muted-foreground" />
                     </div>
                     <p className="text-muted-foreground">
-                      Adjust factors and generate AI prediction to see results
+                      {customWeightsEnabled
+                        ? "Adjust factor weights and generate a prediction to see results"
+                        : "Click Generate AI Prediction to see results using default model weights"}
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[800px] overflow-y-auto pr-2">
-                  {predictionResults.map((result) => (
+                  {predictionRows.map((result) => (
                     <div
-                      key={result.position}
+                      key={`${result.position}-${result.driver}`}
                       className="overflow-hidden rounded-xl border border-border bg-gradient-to-r from-secondary/50 to-secondary/30 p-4 transition-all hover:border-[#e10600]/50"
                     >
                       <div className="mb-3 flex items-center gap-3">
@@ -320,12 +357,10 @@ export default function Predictions() {
                   <Target className="h-5 w-5 text-[#00d4ff]" />
                   Model Analysis
                 </h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Based on your configured factors, the AI model predicts <span className="font-semibold text-foreground">Max Verstappen</span> has the highest probability of winning the Miami GP. His strong recent form combined with Red Bull's superior team performance gives him a significant advantage. Weather conditions are expected to be favorable, which further supports this prediction.
-                </p>
+                <p className="text-sm leading-relaxed text-muted-foreground">{analysisText}</p>
                 <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
                   <div className="h-2 w-2 rounded-full bg-[#00ff88]"></div>
-                  <span>Model confidence: 89%</span>
+                  <span>Model confidence: {modelConfidence}%</span>
                 </div>
               </div>
             )}
