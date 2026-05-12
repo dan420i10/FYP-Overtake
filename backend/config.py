@@ -1,7 +1,14 @@
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-load_dotenv()
+_backend_dir = Path(__file__).resolve().parent
+_repo_root = _backend_dir.parent
+
+# Load repo-root .env first (e.g. DB_PORT=3307), then backend/.env overrides.
+load_dotenv(_repo_root / ".env")
+load_dotenv(_backend_dir / ".env", override=True)
 
 class Config:
     """Configuration settings for Flask app"""
