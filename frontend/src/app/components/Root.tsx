@@ -10,7 +10,13 @@ export default function Root() {
 
   return (
     <ThemeProvider>
-      <div className="min-h-screen bg-background">
+      <div
+        className={
+          isLoginPage
+            ? "h-dvh max-h-dvh overflow-hidden bg-background"
+            : "min-h-screen bg-background"
+        }
+      >
         <Toaster position="top-right" richColors />
         {!isLoginPage && <Navbar />}
         <Outlet />

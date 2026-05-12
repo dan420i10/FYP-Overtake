@@ -56,67 +56,66 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-xl">
-      <div className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <Link to="/dashboard" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#e10600] to-[#a00500]">
-                <Flag className="h-6 w-6 text-white" />
-              </div>
-              <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-xl font-bold tracking-tight text-transparent">
-                OverTake
-              </span>
-            </Link>
-
-            <div className="flex gap-1">
-              <Link
-                to="/dashboard"
-                className={`rounded-lg px-4 py-2 transition-all ${
-                  isActive("/dashboard")
-                    ? "bg-[#e10600] text-white shadow-lg shadow-[#e10600]/20"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/predictions"
-                className={`rounded-lg px-4 py-2 transition-all ${
-                  isActive("/predictions")
-                    ? "bg-[#e10600] text-white shadow-lg shadow-[#e10600]/20"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Predictions
-              </Link>
-              <Link
-                to="/statistics"
-                className={`rounded-lg px-4 py-2 transition-all ${
-                  isActive("/statistics")
-                    ? "bg-[#e10600] text-white shadow-lg shadow-[#e10600]/20"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Statistics
-              </Link>
+    <nav className="sticky top-0 z-50 w-full border-b border-border bg-card/80 backdrop-blur-xl">
+      <div className="flex w-full items-center justify-between gap-3 px-4 py-4 sm:gap-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 flex-1 items-center justify-start gap-2 sm:gap-3">
+          <Link to="/dashboard" className="flex shrink-0 items-center gap-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-[#e10600] to-[#a00500]">
+              <Flag className="h-6 w-6 text-white" />
             </div>
-          </div>
+            <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-xl font-bold tracking-tight text-transparent">
+              OverTake
+            </span>
+          </Link>
 
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          <div className="flex min-w-0 items-center gap-1">
+            <Link
+              to="/dashboard"
+              className={`shrink-0 rounded-lg px-3 py-2 text-sm transition-all sm:px-4 ${
+                isActive("/dashboard")
+                  ? "bg-[#e10600] text-white shadow-lg shadow-[#e10600]/20"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
             >
-              {theme === "dark" ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
-            </button>
+              Dashboard
+            </Link>
+            <Link
+              to="/predictions"
+              className={`shrink-0 rounded-lg px-3 py-2 text-sm transition-all sm:px-4 ${
+                isActive("/predictions")
+                  ? "bg-[#e10600] text-white shadow-lg shadow-[#e10600]/20"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Predictions
+            </Link>
+            <Link
+              to="/statistics"
+              className={`shrink-0 rounded-lg px-3 py-2 text-sm transition-all sm:px-4 ${
+                isActive("/statistics")
+                  ? "bg-[#e10600] text-white shadow-lg shadow-[#e10600]/20"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Statistics
+            </Link>
+          </div>
+        </div>
 
-            <Popover.Root>
+        <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-4">
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </button>
+
+          <Popover.Root>
               <Popover.Trigger asChild>
                 <button className="relative rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
                   <Bell className="h-5 w-5" />
@@ -236,7 +235,6 @@ export default function Navbar() {
                 </DropdownMenu.Content>
               </DropdownMenu.Portal>
             </DropdownMenu.Root>
-          </div>
         </div>
       </div>
     </nav>

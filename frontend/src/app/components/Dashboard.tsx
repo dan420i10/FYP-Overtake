@@ -18,9 +18,9 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <div className="relative h-[600px] overflow-hidden">
         <img
-          src="https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2000"
+          src="/images/dashboard_background.jpeg"
           alt="F1 Racing Track"
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full max-h-full max-w-full object-cover object-center"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-background"></div>
 
@@ -30,11 +30,11 @@ export default function Dashboard() {
             alt="F1 Logo"
             className="mb-8 h-20 w-auto opacity-90"
           />
-          <h1 className="mb-2 text-4xl font-bold tracking-tight text-white md:text-5xl">
-            Welcome, {userName}! 🏎️
+          <h1 className="mx-auto mb-2 w-full max-w-4xl text-center text-4xl font-bold tracking-tight text-white md:text-5xl">
+          Welcome, {userName}!
           </h1>
           <h2 className="mb-4 text-6xl font-bold tracking-tight text-white md:text-7xl lg:text-8xl">
-            FORMULA 1
+            OverTake
           </h2>
           <p className="max-w-3xl text-lg text-gray-200 md:text-xl">
             The pinnacle of motorsport. Experience the thrill, understand the sport,
@@ -55,23 +55,23 @@ export default function Dashboard() {
           <div className="grid gap-8 p-8 md:grid-cols-2 md:p-12">
             <div>
               <h3 className="mb-4 text-3xl font-bold text-foreground">
-                See AI Predictions
+                View Statistics
               </h3>
               <p className="mb-6 text-lg leading-relaxed text-muted-foreground">
-                Our AI model analyzes race data, driver performance, team strategies, and track conditions.
-                Adjust the prediction factors to see how different variables affect the race outcome predictions.
+                Analyze the Constructors' Championship through a technical lens, viewing the cumulative performance of team pairings. Evaluate team efficiency, technical reliability, and the points-per-race (PPR) metrics that define the gap between the leaders and the rest of the grid.
               </p>
               <button
-                onClick={() => navigate("/predictions")}
+                type="button"
+                onClick={() => navigate("/statistics")}
                 className="rounded-lg bg-gradient-to-r from-[#e10600] to-[#c00500] px-6 py-3 font-semibold text-white shadow-xl shadow-[#e10600]/30 transition-all hover:shadow-2xl hover:shadow-[#e10600]/40"
               >
-                Generate Predictions
+                See Statistics
               </button>
             </div>
             <div className="flex items-center justify-center">
               <img
-                src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=600"
-                alt="F1 Car"
+                src="/images/home_page.jpeg"
+                alt="F1"
                 className="h-64 w-full rounded-xl object-cover shadow-2xl"
               />
             </div>

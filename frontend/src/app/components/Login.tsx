@@ -140,13 +140,13 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen">
-      <div className="relative hidden w-1/2 overflow-hidden lg:block">
-        <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-black/60 to-transparent z-10"></div>
+    <div className="flex h-dvh max-h-dvh w-full min-h-0 flex-col overflow-hidden bg-background lg:flex-row">
+      <div className="relative hidden min-h-0 w-1/2 shrink-0 overflow-hidden lg:block lg:h-full lg:self-stretch">
+        <div className="absolute inset-0 z-10 bg-gradient-to-br from-black/80 via-black/60 to-transparent" />
         <img
-          src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?q=80&w=2070"
+          src="/images/login_page.jpeg"
           alt="F1 Racing"
-          className="h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full max-h-full max-w-full object-cover object-center"
         />
         <div className="absolute inset-0 z-20 flex flex-col items-start justify-end p-12">
           <div className="space-y-2">
@@ -165,8 +165,8 @@ export default function Login() {
         </div>
       </div>
 
-      <div className="flex w-full items-center justify-center bg-background lg:w-1/2">
-        <div className="w-full max-w-md space-y-8 px-8">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-hidden bg-background px-4 py-4 sm:px-6 lg:w-1/2 lg:shrink-0 lg:py-6">
+        <div className="w-full max-w-md space-y-6 sm:space-y-8">
           <div className="text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#e10600] to-[#a00500] shadow-2xl shadow-[#e10600]/30">
               <div className="text-3xl">🏎️</div>
