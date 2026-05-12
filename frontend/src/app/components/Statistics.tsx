@@ -1,4 +1,4 @@
-import { CheckCircle, XCircle, AlertCircle, Calendar, Trophy, Target, Users, Award } from "lucide-react";
+import { Trophy, Users, Award } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   constructorAccentColor,
@@ -9,79 +9,10 @@ import {
   type StandingsMeta,
 } from "../../services/standingsService";
 
-const previousPredictions = [
-  {
-    id: 1,
-    race: "China Grand Prix",
-    date: "April 20, 2026",
-    circuit: "Shanghai International Circuit",
-    predicted: [
-      "Max Verstappen",
-      "Charles Leclerc",
-      "Lando Norris",
-      "Lewis Hamilton",
-      "George Russell",
-      "Carlos Sainz",
-      "Sergio Perez",
-      "Fernando Alonso",
-      "Oscar Piastri",
-      "Lance Stroll",
-    ],
-    actual: [
-      "Max Verstappen",
-      "Charles Leclerc",
-      "Lando Norris",
-      "Carlos Sainz",
-      "Lewis Hamilton",
-      "George Russell",
-      "Sergio Perez",
-      "Fernando Alonso",
-      "Oscar Piastri",
-      "Lance Stroll",
-    ],
-    status: "correct",
-    points: 68,
-    accuracy: 90,
-  },
-  {
-    id: 2,
-    race: "Japan Grand Prix",
-    date: "April 13, 2026",
-    circuit: "Suzuka Circuit",
-    predicted: [
-      "Max Verstappen",
-      "Lando Norris",
-      "Charles Leclerc",
-      "Lewis Hamilton",
-      "Carlos Sainz",
-      "George Russell",
-      "Sergio Perez",
-      "Fernando Alonso",
-      "Oscar Piastri",
-      "Yuki Tsunoda",
-    ],
-    actual: [
-      "Max Verstappen",
-      "Charles Leclerc",
-      "Lando Norris",
-      "Carlos Sainz",
-      "Lewis Hamilton",
-      "George Russell",
-      "Fernando Alonso",
-      "Sergio Perez",
-      "Oscar Piastri",
-      "Yuki Tsunoda",
-    ],
-    status: "partial",
-    points: 52,
-    accuracy: 75,
-  },
-];
-
 const emptyStandingsMeta: StandingsMeta = { season: "", round: "" };
 
 export default function Statistics() {
-  const [activeTab, setActiveTab] = useState<"predictions" | "drivers" | "constructors">("predictions");
+  const [activeTab, setActiveTab] = useState<"drivers" | "constructors">("drivers");
   const [driverRows, setDriverRows] = useState<DriverStandingRow[]>([]);
   const [constructorRows, setConstructorRows] = useState<ConstructorStandingRow[]>([]);
   const [driverMeta, setDriverMeta] = useState<StandingsMeta>(emptyStandingsMeta);
@@ -132,44 +63,12 @@ export default function Statistics() {
     if (!meta.season && !meta.round) return "Live championship data (Jolpica / Ergast)";
     const parts = [`Season ${meta.season}`];
     if (meta.round) parts.push(`after round ${meta.round}`);
-    parts.push("Jolpica / Ergast");
+    // parts.push("Jolpica / Ergast");
     return parts.join(" · ");
   };
 
   const leaderConstructorPoints =
     constructorRows.length > 0 ? Math.max(constructorRows[0].points, 1) : 1;
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "correct":
-        return <CheckCircle className="h-5 w-5 text-[#00ff88]" />;
-      case "partial":
-        return <AlertCircle className="h-5 w-5 text-[#ffd700]" />;
-      case "incorrect":
-        return <XCircle className="h-5 w-5 text-[#ef4444]" />;
-      default:
-        return null;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "correct":
-        return "border-[#00ff88]/30 bg-[#00ff88]/5";
-      case "partial":
-        return "border-[#ffd700]/30 bg-[#ffd700]/5";
-      case "incorrect":
-        return "border-[#ef4444]/30 bg-[#ef4444]/5";
-      default:
-        return "border-border";
-    }
-  };
-
-  const totalPoints = previousPredictions.reduce((sum, pred) => sum + pred.points, 0);
-  const avgAccuracy = Math.round(
-    previousPredictions.reduce((sum, pred) => sum + pred.accuracy, 0) / previousPredictions.length
-  );
-  const correctPredictions = previousPredictions.filter((p) => p.status === "correct").length;
 
   return (
     <div className="min-h-screen bg-background py-8">
@@ -179,24 +78,11 @@ export default function Statistics() {
             Statistics & Standings
           </h1>
           <p className="text-muted-foreground">
-            Review AI predictions, driver standings, and constructor championship
+            Driver and constructor championship standings
           </p>
         </div>
 
         <div className="mb-8 flex gap-2 overflow-x-auto rounded-xl bg-secondary/50 p-1">
-          <button
-            onClick={() => setActiveTab("predictions")}
-            className={`flex-1 whitespace-nowrap rounded-lg px-6 py-3 transition-all ${
-              activeTab === "predictions"
-                ? "bg-[#e10600] text-white shadow-lg shadow-[#e10600]/20"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <Target className="h-5 w-5" />
-              <span>Prediction History</span>
-            </div>
-          </button>
           <button
             onClick={() => setActiveTab("drivers")}
             className={`flex-1 whitespace-nowrap rounded-lg px-6 py-3 transition-all ${
@@ -224,155 +110,6 @@ export default function Statistics() {
             </div>
           </button>
         </div>
-
-        {activeTab === "predictions" && (
-          <>
-            <div className="mb-8 grid gap-6 md:grid-cols-3">
-              <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card/80 to-secondary/40 p-6 backdrop-blur-xl">
-                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                  <Trophy className="h-5 w-5 text-[#ffd700]" />
-                  <span className="text-sm">Total Points Earned</span>
-                </div>
-                <div className="text-3xl font-bold text-foreground">{totalPoints}</div>
-                <div className="mt-2 text-sm text-muted-foreground">
-                  From {previousPredictions.length} races
-                </div>
-              </div>
-
-              <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card/80 to-secondary/40 p-6 backdrop-blur-xl">
-                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                  <Target className="h-5 w-5 text-[#00d4ff]" />
-                  <span className="text-sm">Average Accuracy</span>
-                </div>
-                <div className="text-3xl font-bold text-foreground">{avgAccuracy}%</div>
-                <div className="mt-2 text-sm text-muted-foreground">
-                  Across all predictions
-                </div>
-              </div>
-
-              <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card/80 to-secondary/40 p-6 backdrop-blur-xl">
-                <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                  <CheckCircle className="h-5 w-5 text-[#00ff88]" />
-                  <span className="text-sm">Perfect Predictions</span>
-                </div>
-                <div className="text-3xl font-bold text-foreground">{correctPredictions}</div>
-                <div className="mt-2 text-sm text-muted-foreground">
-                  AI model 100% accuracy
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              {previousPredictions.map((prediction) => (
-                <div
-                  key={prediction.id}
-                  className={`overflow-hidden rounded-2xl border backdrop-blur-xl ${getStatusColor(
-                    prediction.status
-                  )}`}
-                >
-                  <div className="p-6">
-                    <div className="mb-4 flex items-start justify-between">
-                      <div>
-                        <div className="mb-2 flex items-center gap-3">
-                          <h3 className="text-2xl font-bold text-foreground">
-                            {prediction.race}
-                          </h3>
-                          {getStatusIcon(prediction.status)}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-4 w-4" />
-                            <span>{prediction.date}</span>
-                          </div>
-                          <span>•</span>
-                          <span>{prediction.circuit}</span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="mb-1 text-3xl font-bold text-foreground">
-                          +{prediction.points}
-                        </div>
-                        <div className="text-sm text-muted-foreground">points</div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-6 md:grid-cols-2">
-                      <div className="rounded-lg border border-border bg-secondary/30 p-4">
-                        <h4 className="mb-3 text-sm font-semibold text-muted-foreground">
-                          AI MODEL PREDICTION (TOP 10)
-                        </h4>
-                        <div className="space-y-2">
-                          {prediction.predicted.map((driver, index) => (
-                            <div key={index} className="flex items-center gap-3">
-                              <div
-                                className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
-                                  index === 0
-                                    ? "bg-gradient-to-br from-[#ffd700] to-[#ffed4e] text-black"
-                                    : index === 1
-                                    ? "bg-gradient-to-br from-[#c0c0c0] to-[#e8e8e8] text-black"
-                                    : index === 2
-                                    ? "bg-gradient-to-br from-[#cd7f32] to-[#e8a87c] text-white"
-                                    : "bg-secondary/50 text-foreground"
-                                }`}
-                              >
-                                {index + 1}
-                              </div>
-                              <span className="flex-1 text-sm text-foreground">{driver}</span>
-                              {prediction.predicted[index] === prediction.actual[index] && (
-                                <CheckCircle className="h-4 w-4 text-[#00ff88]" />
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="rounded-lg border border-border bg-secondary/30 p-4">
-                        <h4 className="mb-3 text-sm font-semibold text-muted-foreground">
-                          ACTUAL RESULT (TOP 10)
-                        </h4>
-                        <div className="space-y-2">
-                          {prediction.actual.map((driver, index) => (
-                            <div key={index} className="flex items-center gap-3">
-                              <div
-                                className={`flex h-7 w-7 items-center justify-center rounded-lg text-xs font-bold ${
-                                  index === 0
-                                    ? "bg-gradient-to-br from-[#ffd700] to-[#ffed4e] text-black"
-                                    : index === 1
-                                    ? "bg-gradient-to-br from-[#c0c0c0] to-[#e8e8e8] text-black"
-                                    : index === 2
-                                    ? "bg-gradient-to-br from-[#cd7f32] to-[#e8a87c] text-white"
-                                    : "bg-secondary/50 text-foreground"
-                                }`}
-                              >
-                                {index + 1}
-                              </div>
-                              <span className="flex-1 text-sm text-foreground">{driver}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between rounded-lg bg-secondary/30 p-3">
-                      <span className="text-sm text-muted-foreground">Model Accuracy</span>
-                      <div className="flex items-center gap-3">
-                        <div className="h-2 w-32 overflow-hidden rounded-full bg-secondary/50">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-[#00ff88] to-[#00d4ff]"
-                            style={{ width: `${prediction.accuracy}%` }}
-                          ></div>
-                        </div>
-                        <span className="font-semibold text-foreground">
-                          {prediction.accuracy}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
 
         {activeTab === "drivers" && (
           <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card/80 to-secondary/40 backdrop-blur-xl">

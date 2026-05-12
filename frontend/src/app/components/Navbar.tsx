@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router";
-import { Bell, User, Flag, Sun, Moon, Settings, LogOut, Trophy, BarChart3, Clock } from "lucide-react";
+import { Bell, User, Flag, Sun, Moon, LogOut, BarChart3, Clock } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { authService } from "../../services/authService";
@@ -203,24 +203,8 @@ export default function Navbar() {
                     onClick={() => navigate("/statistics")}
                     className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground outline-none transition-colors hover:bg-secondary focus:bg-secondary"
                   >
-                    <Trophy className="h-4 w-4" />
-                    <span>Prediction History</span>
-                  </DropdownMenu.Item>
-
-                  <DropdownMenu.Item
-                    onClick={() => navigate("/statistics")}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground outline-none transition-colors hover:bg-secondary focus:bg-secondary"
-                  >
                     <BarChart3 className="h-4 w-4" />
                     <span>Statistics</span>
-                  </DropdownMenu.Item>
-
-                  <DropdownMenu.Item
-                    onClick={() => navigate("/settings")}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm text-foreground outline-none transition-colors hover:bg-secondary focus:bg-secondary"
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span>Settings</span>
                   </DropdownMenu.Item>
 
                   <DropdownMenu.Separator className="my-2 h-px bg-border" />

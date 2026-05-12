@@ -6,7 +6,6 @@ export interface PredictionRow {
   position: number;
   driver: string;
   team: string;
-  probability: number;
   confidence: number;
 }
 
@@ -14,7 +13,9 @@ export interface PredictMeta {
   defaultSeason: number;
   defaultRound: number;
   defaultEventName: string;
+  /** Rounds for the picker (2025 season when present in the dataset). */
   races: { season: number; round: number; event: string }[];
+  pickerSeason?: number;
 }
 
 export interface PredictResponse {

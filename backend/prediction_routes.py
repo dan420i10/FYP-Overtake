@@ -1,7 +1,9 @@
 from flask import Blueprint, jsonify, request
 
 from prediction_service import (
+    PICKER_SEASON,
     get_default_race,
+    get_default_race_for_season,
     get_prediction_engine,
     list_races,
     run_race_prediction,
@@ -41,17 +43,21 @@ def _parse_user_weights(body: dict) -> dict | None:
 @predict_bp.route("/predict/meta", methods=["GET"])
 @token_required
 def predict_meta(_current_user):
-    """Latest race in parquet + recent race list (requires models and features to load)."""
+    """Default race and full list for PICKER_SEASON (requires models and features to load)."""
     try:
         get_prediction_engine()
-        season, rnd, name = get_default_race()
-        races = list_races(limit=50)
+        races = list_races(season=PICKER_SEASON)
+        if races:
+            season, rnd, name = get_default_race_for_season(PICKER_SEASON)
+        else:
+            season, rnd, name = get_default_race()
         return jsonify(
             {
                 "defaultSeason": season,
                 "defaultRound": rnd,
                 "defaultEventName": name,
                 "races": races,
+                "pickerSeason": PICKER_SEASON,
             }
         ), 200
     except FileNotFoundError as e:

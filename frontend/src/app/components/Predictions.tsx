@@ -1,12 +1,33 @@
 import { useEffect, useState } from "react";
-import { RotateCcw, Zap, TrendingUp, Cloud, Trophy, Target, Settings, SlidersHorizontal } from "lucide-react";
+import {
+  RotateCcw,
+  Zap,
+  TrendingUp,
+  Cloud,
+  Trophy,
+  Target,
+  Settings,
+  SlidersHorizontal,
+  Calendar,
+} from "lucide-react";
 import * as Slider from "@radix-ui/react-slider";
 import { Switch } from "./ui/switch";
 import { Label } from "./ui/label";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import {
   predictionService,
   type PredictionRow,
 } from "../../services/predictionService";
+
+function raceOptionKey(season: number, round: number) {
+  return `${season}-${round}`;
+}
 
 interface Factor {
   id: string;
@@ -76,6 +97,13 @@ export default function Predictions() {
   const [showResults, setShowResults] = useState(false);
   const [customWeightsEnabled, setCustomWeightsEnabled] = useState(false);
   const [eventLabel, setEventLabel] = useState("");
+  const [pickerSeason, setPickerSeason] = useState(2025);
+  const [seasonRaces, setSeasonRaces] = useState<
+    { season: number; round: number; event: string }[]
+  >([]);
+  const [raceKey, setRaceKey] = useState("");
+  const [metaLoading, setMetaLoading] = useState(true);
+  const [metaError, setMetaError] = useState<string | null>(null);
   const [predictionRows, setPredictionRows] = useState<PredictionRow[]>([]);
   const [analysisText, setAnalysisText] = useState("");
   const [modelConfidence, setModelConfidence] = useState(0);
@@ -86,10 +114,41 @@ export default function Predictions() {
     predictionService
       .getMeta()
       .then((m) => {
-        if (!cancelled) setEventLabel(m.defaultEventName);
+        if (cancelled) return;
+        setMetaError(null);
+        setMetaLoading(false);
+        setPickerSeason(m.pickerSeason ?? 2025);
+        setSeasonRaces(m.races);
+        if (m.races.length > 0) {
+          const hasDefault = m.races.some(
+            (r) => r.season === m.defaultSeason && r.round === m.defaultRound
+          );
+          const pick = hasDefault
+            ? raceOptionKey(m.defaultSeason, m.defaultRound)
+            : raceOptionKey(
+                m.races[m.races.length - 1].season,
+                m.races[m.races.length - 1].round
+              );
+          setRaceKey(pick);
+          const sel =
+            m.races.find((r) => raceOptionKey(r.season, r.round) === pick) ??
+            m.races[m.races.length - 1];
+          setEventLabel(sel.event);
+        } else {
+          setRaceKey("");
+          setEventLabel(m.defaultEventName);
+        }
       })
       .catch(() => {
-        if (!cancelled) setEventLabel("");
+        if (!cancelled) {
+          setMetaLoading(false);
+          setSeasonRaces([]);
+          setRaceKey("");
+          setEventLabel("");
+          setMetaError(
+            "Could not load races. Check that the backend is running and you are signed in."
+          );
+        }
       });
     return () => {
       cancelled = true;
@@ -108,11 +167,28 @@ export default function Predictions() {
 
   const runPrediction = async () => {
     setPredictionError(null);
+    if (!raceKey) {
+      setPredictionError(
+        seasonRaces.length === 0
+          ? `No ${pickerSeason} races found in the model dataset.`
+          : "Choose a race first."
+      );
+      return;
+    }
+    const parts = raceKey.split("-");
+    const season = Number(parts[0]);
+    const round = Number(parts[1]);
+    if (!Number.isFinite(season) || !Number.isFinite(round)) {
+      setPredictionError("Invalid race selection.");
+      return;
+    }
     setIsPredicting(true);
     try {
       const payload: {
+        season: number;
+        round: number;
         user_weights?: Record<string, number>;
-      } = {};
+      } = { season, round };
       if (customWeightsEnabled) {
         payload.user_weights = buildUserWeights(factors);
       }
@@ -139,13 +215,66 @@ export default function Predictions() {
           </h1>
           <p className="text-muted-foreground">
             {customWeightsEnabled
-              ? "Tune factor weights below, then generate a prediction tailored to your preferences."
-              : "Run a quick prediction with the model’s default balanced weights, or turn on custom weights to fine-tune each factor."}
+              ? `Pick a ${pickerSeason} race, tune factor weights below, then generate a prediction tailored to your preferences.`
+              : `Pick a ${pickerSeason} race, then run a prediction with the model’s default balanced weights, or turn on custom weights to fine-tune each factor.`}
           </p>
         </div>
 
+        {metaError && (
+          <p className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-600 dark:text-red-400">
+            {metaError}
+          </p>
+        )}
+
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="space-y-6">
+            <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card/80 to-secondary/40 p-6 backdrop-blur-xl">
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-6 w-6 text-[#e10600]" />
+                  <h3 className="text-lg text-foreground">{pickerSeason} season — race</h3>
+                </div>
+              </div>
+              {metaLoading ? (
+                <p className="text-sm text-muted-foreground">Loading races…</p>
+              ) : seasonRaces.length > 0 ? (
+                <div className="space-y-2">
+                  <Label htmlFor="race-select" className="text-sm text-muted-foreground">
+                    Grand Prix
+                  </Label>
+                  <Select
+                    value={raceKey}
+                    onValueChange={(v) => {
+                      setRaceKey(v);
+                      const hit = seasonRaces.find(
+                        (r) => raceOptionKey(r.season, r.round) === v
+                      );
+                      if (hit) setEventLabel(hit.event);
+                    }}
+                  >
+                    <SelectTrigger id="race-select" className="w-full bg-input-background">
+                      <SelectValue placeholder="Select a race" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {seasonRaces.map((r) => (
+                        <SelectItem
+                          key={raceOptionKey(r.season, r.round)}
+                          value={raceOptionKey(r.season, r.round)}
+                        >
+                          R{r.round} — {r.event}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : !metaError ? (
+                <p className="text-sm text-muted-foreground">
+                  No {pickerSeason} races in the features file yet. Add that season to the dataset or check{" "}
+                  <code className="rounded bg-secondary px-1 py-0.5 text-xs">F1_FEATURES_PARQUET</code>.
+                </p>
+              ) : null}
+            </div>
+
             <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card/80 to-secondary/40 p-6 backdrop-blur-xl">
               <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
@@ -257,7 +386,7 @@ export default function Predictions() {
               <button
                 type="button"
                 onClick={() => void runPrediction()}
-                disabled={isPredicting}
+                disabled={isPredicting || !raceKey}
                 className="mt-6 flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#e10600] to-[#c00500] px-6 py-4 font-semibold text-white shadow-xl shadow-[#e10600]/30 transition-all hover:shadow-2xl hover:shadow-[#e10600]/40 disabled:opacity-50"
               >
                 {isPredicting ? (
@@ -319,21 +448,15 @@ export default function Predictions() {
                         >
                           {result.position}
                         </div>
-                        <div className="flex-1">
+                        <div className="min-w-0 flex-1">
                           <div className="font-semibold text-foreground">{result.driver}</div>
                           <div className="text-sm text-muted-foreground">{result.team}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-xl font-bold text-foreground">
-                            {result.probability}%
-                          </div>
-                          <div className="text-xs text-muted-foreground">Probability</div>
                         </div>
                       </div>
 
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Confidence</span>
+                          <span className="text-muted-foreground">Completion Probability</span>
                           <span className="font-semibold text-[#00ff88]">
                             {result.confidence}%
                           </span>

@@ -21,6 +21,9 @@ _model_training = _repo_root / "model-training"
 _lock = threading.Lock()
 _state: Dict[str, Any] = {}
 
+# Calendar year for the predictions UI race list (when present in features).
+PICKER_SEASON = 2025
+
 
 def _features_path() -> str:
     return os.getenv(
@@ -100,23 +103,35 @@ def get_default_race() -> Tuple[int, int, str]:
     return season, rnd, name
 
 
-def list_races(limit: int = 40) -> List[Dict[str, Any]]:
+def list_races(season: Optional[int] = None, limit: int = 40) -> List[Dict[str, Any]]:
     st = get_prediction_engine()
     df: pd.DataFrame = st["df"]
+    work = df[df["Season"] == season] if season is not None else df
+    if len(work) == 0:
+        return []
     g = (
-        df.groupby(["Season", "RoundNumber"], as_index=False)
+        work.groupby(["Season", "RoundNumber"], as_index=False)
         .agg(event=("OfficialEventName", "first"))
         .sort_values(["Season", "RoundNumber"])
     )
-    tail = g.tail(limit)
+    if season is None:
+        g = g.tail(limit)
     return [
         {
             "season": int(r["Season"]),
             "round": int(r["RoundNumber"]),
             "event": str(r["event"]),
         }
-        for _, r in tail.iterrows()
+        for _, r in g.iterrows()
     ]
+
+
+def get_default_race_for_season(season: int) -> Tuple[int, int, str]:
+    races = list_races(season=season)
+    if not races:
+        raise ValueError(f"No races in features dataset for season {season}")
+    last = races[-1]
+    return last["season"], last["round"], last["event"]
 
 
 def run_race_prediction(
@@ -150,23 +165,16 @@ def run_race_prediction(
     )
 
     top = preds.head(10).reset_index(drop=True)
-    scores = top["Combined_Score"].astype(float).values
-    smin, smax = float(scores.min()), float(scores.max())
-    span = smax - smin + 1e-9
 
     rows: List[Dict[str, Any]] = []
     for _, r in top.iterrows():
         dnf = float(r["DNF_Prob"])
         conf = int(max(45, min(99, round((1.0 - dnf) * 100))))
-        cs = float(r["Combined_Score"])
-        prob = int(round(35 + 60 * (cs - smin) / span))
-        prob = max(12, min(98, prob))
         rows.append(
             {
                 "position": int(r["PredPosition"]),
                 "driver": str(r["Driver"]),
                 "team": str(r["TeamName"]),
-                "probability": prob,
                 "confidence": conf,
             }
         )
@@ -188,7 +196,7 @@ def run_race_prediction(
         analysis = (
             f"With your custom factor emphasis (about {int(round(blend * 100))}% blend toward your priorities), "
             f"the ensemble ranks {top_driver} ({top_team}) most likely to win {event_name}. "
-            f"Probabilities combine position regression, learning-to-rank, and DNF risk with circuit chaos blending."
+            f"Outputs combine position regression, learning-to-rank, and DNF risk with circuit chaos blending."
         )
     else:
         analysis = (
