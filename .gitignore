@@ -47,3 +47,4 @@ yarn-debug.log*
 .cache/
 overtake-main.tex
 SETUP.md
+model-venv/

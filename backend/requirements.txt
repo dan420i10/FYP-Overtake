@@ -5,6 +5,8 @@ mysql-connector-python==8.0.33
 bcrypt==4.0.1
 PyJWT==2.8.0
 Flask-CORS==4.0.0
+
+
 numpy>=1.26.0,<3
 pandas>=2.1.0,<3
 pyarrow>=14.0.0
@@ -12,3 +14,5 @@ scikit-learn>=1.3.0
 scipy>=1.11.0
 lightgbm>=4.3.0
 xgboost>=2.0.0
+# --- Regenerate f1_features.parquet from DuckDB / SQL (f1_feature_engineering.py)
+duckdb>=1.0.0
